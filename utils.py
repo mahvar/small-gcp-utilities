@@ -1,3 +1,7 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import subprocess
 import io
 import json
@@ -40,31 +44,27 @@ def run_command(cmd, safe_message_indicator='', interrupt_on_error=True, chatty=
     return message
 
 
-def save_string(string, outputFile):
-    """
-    Writes the provided string into the output file.
-    :param string: the string to be saved.
-    :param outputFile: the file to be saved to
-    :return: None
-    """
-    with io.open(outputFile, 'w', encoding='utf8') as outfile:
-        outfile.write(string)
+# Make it work for Python 2 and 3 and with Unicode
+try:
+    to_unicode = unicode
+except NameError:
+    to_unicode = str
 
 
-def save_pretty_JSON(jsonDict, outputFile):
+def save_pretty_JSON(jsonDict, outputFileName):
     """
     Writes the provided dictionary into the output file in JSON format.
     :param jsonDict: the dictionary to be saved
     :param outputFile: the file to be saved to
     :return: None
     """
-    save_string(json.dumps(jsonDict,
-                           indent=4, sort_keys=True,
-                           separators=(',', ': '), ensure_ascii=False),
-                outputFile)
-
-
-from io import StringIO
+    with io.open(outputFileName, 'w', encoding='utf8') as outputFile:
+        str_ = json.dumps(jsonDict,
+                    indent=4,
+                    sort_keys=True,
+                    separators=(',', ': '),
+                    ensure_ascii=False)
+        outputFile.write(to_unicode(str_))
 
 
 def key_value_pairs(input_dict):
@@ -79,18 +79,21 @@ def key_value_pairs(input_dict):
 
     return output_list
 
-def save_new_line_delimited_JSON(jsonArray, outputFile):
+
+def save_new_line_delimited_JSON(jsonArray, outputFileName):
     """
     Converts the input array of dictionaries into newline delimited JSON and writes it to the output file.
     :param jsonDict: the array of dictionaries to be saved
     :param outputFile: the file to be saved to
     :return: None
     """
+    in_json = json.dumps(jsonArray).replace("\'", "\"")  # convert single quotes to double quotes
 
-    in_json = StringIO(str(jsonArray).replace("\'", "\""))  # convert single quotes to double quotes
+    with io.open(outputFileName, 'w', encoding='utf8') as outputFile:
+        result = [json.dumps(record) for record in json.loads(in_json)]
 
-    result = [json.dumps(record) for record in json.load(in_json)]
-    save_string('\n'.join(result), outputFile)
+        str_ = '\n'.join(result)
+        outputFile.write(to_unicode(str_))
 
 
 def merge_JSON(jsonDict, inOutFile):
@@ -147,7 +150,7 @@ def persist_JSON(json_dict, dataset_id, table_id):
             source_file,
             table_ref,
             location=dataset_location,  # Must match the destination dataset location.
-            job_config=job_config)  # API request
+            job_config=job_config)      # API request
 
     job.result()  # Waits for table load to complete.
 

@@ -11,6 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 import sys
 
 sys.path.append('../')
@@ -188,40 +189,44 @@ def main():
     while request is not None:
         response = request.execute()
 
-        for project in response['projects']:
-            print('getting metadata about project {}...'.format(project['projectId']))
+        if 'projects' in response:
+            for project in response['projects']:
+                print('getting metadata about project {}...'.format(project['projectId']))
 
-            project_dict = project
+                project_dict = project
 
-            if 'labels' in project_dict:
-                # Labels are free form and cause errors persisting the json.
-                # We need to convert them into an array of key-value pairs to keep the schema consistent.
-                project_dict['labels'] = key_value_pairs(project_dict['labels'])
+                if 'labels' in project_dict:
+                    # Labels are free form and cause errors persisting the json.
+                    # We need to convert them into an array of key-value pairs to keep the schema consistent.
+                    project_dict['labels'] = key_value_pairs(project_dict['labels'])
 
-            try:
-                # 2. get iam bindings at the project level.
-                # if the caller doesn't have proper rights, this will throw an exception.
+                try:
+                    # 2. get iam bindings at the project level.
+                    # if the caller doesn't have proper rights, this will throw an exception.
 
-                iam_request = service.projects().getIamPolicy(resource=project['projectId'])
-                iam_response = iam_request.execute()
-                project_dict['iam_bindings'] = iam_response['bindings']
+                    iam_request = service.projects().getIamPolicy(resource=project['projectId'])
+                    iam_response = iam_request.execute()
+                    project_dict['iam_bindings'] = iam_response['bindings']
 
-            except discovery.HttpError as http_error:
-                project_dict['iam_bindings'] = {'error': get_error_messages(http_error)}
+                except discovery.HttpError as http_error:
+                    project_dict['iam_bindings'] = {'error': get_error_messages(http_error)}
 
-            # 3. get list of enabled API for the project
-            project_dict['enabled_api'] = get_enabled_api(project['projectId'], credentials)
+                # 3. get list of enabled API for the project
+                project_dict['enabled_api'] = get_enabled_api(project['projectId'], credentials)
 
-            # 4. get list of buckets for the project
-            project_dict['buckets'] = get_buckets(project['projectId'], credentials)
+                # 4. get list of buckets for the project
+                project_dict['buckets'] = get_buckets(project['projectId'], credentials)
 
-            projects.append(project_dict)
+                projects.append(project_dict)
+        else:
+            print ('found no projects matching "{}"!'.format(project_filter))
 
         request = service.projects().list_next(previous_request=request, previous_response=response)
 
-    print('persisting metadata to BigQuery dataset:{} table:{}...'.format(dataset_Id, table_id))
-    inventory['projects'] = projects
-    persist_JSON(inventory, dataset_Id, table_id)
+    if len(projects) > 0:
+        print('persisting metadata to BigQuery dataset:{} table:{}...'.format(dataset_Id, table_id))
+        inventory['projects'] = projects
+        persist_JSON(inventory, dataset_Id, table_id)
 
 
 if __name__ == '__main__':

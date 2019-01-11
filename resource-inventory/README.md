@@ -24,7 +24,7 @@ You may even be the person who spins off projects and buckets for others to use.
     ```
     conda create --name <env> --file requirements.txt
     ```
-4. Otherwise, [install python 3](https://realpython.com/installing-python/) and the following requirements:
+4. Otherwise, if you already have python 2.0 or better on your machine, just install the following packages:
     ```
     pip install google-api-python-client
     pip install oauth2client
