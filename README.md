@@ -1,4 +1,4 @@
-# Small GCP utilities
+# Little GCP utilities
 
 ## Origins and history
 In a not too distant life, I was a Solutions Architect for Google Cloud Platform (GCP). I had the privilege to contribute to
